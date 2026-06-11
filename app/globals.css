@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+:root {
+  --forest: #060d08;
+  --moss: #0f1f12;
+  --sage: #1a3320;
+  --deep-sage: #2d4a35;
+  --cream: #f5f0e8;
+  --parchment: #c8bfa8;
+  --muted: #6b8a72;
+  --gold: #c8975a;
+  --gold-light: #dba96e;
+  --green: #5a9e6f;
+  --green-light: #7cb987;
+  --copper: #b87333;
+  --glow-gold: rgba(200, 151, 90, 0.15);
+  --glow-green: rgba(90, 158, 111, 0.12);
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--forest);
+  color: var(--cream);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+body * { cursor: none !important; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--forest); }
+::-webkit-scrollbar-thumb { background: var(--deep-sage); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+::selection { background: rgba(200,151,90,0.3); color: var(--cream); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+@keyframes growStem { to { stroke-dashoffset: 0; } }
+@keyframes fadeLeaf { to { opacity: 0.6; } }
+@keyframes bloomFlower {
+  from { opacity: 0; transform: scale(0) rotate(-10deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ringPulse {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(50px);
+  transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+.glass {
+  background: rgba(15, 31, 18, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(200, 151, 90, 0.15);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, var(--gold), var(--copper), var(--gold-light));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.font-playfair { font-family: 'Playfair Display', serif; }
+.font-cormorant { font-family: 'Cormorant Garamond', serif; }
+
+@keyframes phraseFloat {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.8) translateY(0); }
+  15% { opacity: 1; transform: translateX(-50%) scale(1) translateY(-8px); }
+  70% { opacity: 1; transform: translateX(-50%) scale(1) translateY(-18px); }
+  100% { opacity: 0; transform: translateX(-50%) scale(0.95) translateY(-38px); }
+}
