@@ -99,6 +99,7 @@ export default function NewMomentPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
+  const [limitReached, setLimitReached] = useState(false)
   const [focused, setFocused] = useState('')
   const [user, setUser] = useState<any>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -136,7 +137,7 @@ export default function NewMomentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!description.trim()) { setError('Tell us what you felt'); return }
-    setStep('generating'); setError('')
+    setStep('generating'); setError(''); setLimitReached(false)
     const token = localStorage.getItem('felt_token')
     try {
       const form = new FormData()
@@ -147,8 +148,18 @@ export default function NewMomentPage() {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.message?.message || 'Failed to create moment')
-      
+
+      // FREE plan monthly limit reached — backend returns 403 with an upgrade message
+      if (res.status === 403) {
+        const msg = data?.message?.message || data?.message || "You've reached your monthly moment limit."
+        setError(msg)
+        setLimitReached(true)
+        setStep('form')
+        return
+      }
+
+      if (!res.ok) throw new Error(data.message?.message || data.message || 'Failed to create moment')
+
       const momentId = data.data?.id
       if (!momentId) throw new Error('No moment ID returned')
 
@@ -236,7 +247,16 @@ export default function NewMomentPage() {
                 What did you <em style={{ color:'var(--gold)' }}>feel?</em>
               </h1>
 
-              {error && <div style={{ background:'rgba(180,60,60,0.15)', border:'1px solid rgba(180,60,60,0.3)', borderRadius:'8px', padding:'0.75rem 1rem', color:'#f08080', marginBottom:'1.5rem', textAlign:'center' }}>{error}</div>}
+              {error && (
+                <div style={{ background: limitReached ? 'rgba(200,151,90,0.1)' : 'rgba(180,60,60,0.15)', border: `1px solid ${limitReached ? 'rgba(200,151,90,0.3)' : 'rgba(180,60,60,0.3)'}`, borderRadius:'12px', padding:'1.2rem 1.5rem', marginBottom:'1.5rem', textAlign:'center' }}>
+                  <p style={{ color: limitReached ? 'var(--gold)' : '#f08080', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:'1rem', marginBottom: limitReached ? '0.8rem' : 0 }}>{error}</p>
+                  {limitReached && (
+                    <Link href="/subscription" style={{ display:'inline-block', background:'linear-gradient(135deg,#c8975a,#dba96e)', color:'var(--forest)', padding:'0.6rem 1.6rem', borderRadius:'2rem', textDecoration:'none', fontFamily:"'Playfair Display',serif", fontSize:'0.85rem', fontWeight:700 }}>
+                      Upgrade to Pro ✦
+                    </Link>
+                  )}
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'2rem' }}>
 

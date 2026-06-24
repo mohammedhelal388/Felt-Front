@@ -223,6 +223,73 @@ function VineSidebar({ active, user, onLogout }: { active: string; user: any; on
   )
 }
 
+// ─── Usage Widget — FREE plan monthly limits, hidden for PRO ─────────────────
+function UsageWidget() {
+  const [usage, setUsage] = useState<any>(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('felt_token')
+    if (!token) return
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/usage/summary`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.json()).then(d => {
+      const data = d?.data?.data || d?.data || d
+      setUsage(data)
+    }).catch(() => {})
+  }, [])
+
+  if (!usage || usage.unlimited) return null
+
+  const items = [
+    { label: 'moments', ...usage.moments },
+    { label: 'shares', ...usage.shares },
+    { label: 'living video', ...usage.videos },
+    { label: 'music', ...usage.music },
+  ]
+
+  return (
+    <div style={{
+      background: 'rgba(8,18,10,0.55)',
+      border: '1px solid rgba(200,151,90,0.1)',
+      borderRadius: '14px',
+      padding: '1.1rem 1.4rem',
+      marginBottom: '1.5rem',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '1.8rem',
+      flexWrap: 'wrap',
+    }}>
+      <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '0.78rem', color: 'rgba(200,151,90,0.5)', letterSpacing: '0.05em', flexShrink: 0 }}>
+        this month
+      </p>
+      {items.map(item => {
+        const remaining = item.limit - item.used
+        const isOut = remaining <= 0
+        return (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{
+              fontFamily: "'Playfair Display', serif", fontSize: '0.95rem',
+              color: isOut ? 'rgba(200,100,100,0.85)' : 'var(--gold)',
+            }}>
+              {item.used}/{item.limit}
+            </span>
+            <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '0.82rem', color: 'var(--muted)' }}>
+              {item.label}
+            </span>
+          </div>
+        )
+      })}
+      <Link href="/subscription" style={{
+        marginLeft: 'auto', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic',
+        fontSize: '0.82rem', color: 'rgba(200,151,90,0.6)', textDecoration: 'none',
+        borderBottom: '1px solid rgba(200,151,90,0.25)', flexShrink: 0,
+      }}>
+        unlock unlimited →
+      </Link>
+    </div>
+  )
+}
+
 // ─── Ink Drop FAB ─────────────────────────────────────────────────────────────
 function InkDropFAB() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -510,6 +577,9 @@ export default function Dashboard() {
 
         {/* main content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '3rem 3rem 6rem' }}>
+
+          {/* usage widget — FREE plan only, hides automatically for PRO */}
+          <UsageWidget />
 
           {/* story hero */}
           <StoryHero user={user} moments={moments} />

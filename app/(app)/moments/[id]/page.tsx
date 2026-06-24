@@ -23,9 +23,12 @@ function normalize(raw: any) {
 }
 
 function ShareButton({ momentId }: { momentId: string }) {
-  const [state, setState] = useState<'idle'|'loading'|'copied'>('idle')
+  const [state, setState] = useState<'idle'|'loading'|'copied'|'limit'>('idle')
+  const [limitMsg, setLimitMsg] = useState('')
+
   const share = async () => {
     setState('loading')
+    setLimitMsg('')
     try {
       const token = localStorage.getItem('felt_token')
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shares/moments/${momentId}`, {
@@ -33,8 +36,15 @@ function ShareButton({ momentId }: { momentId: string }) {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       })
       const json = await res.json()
-      // This endpoint returns the Prisma object directly (not wrapped in {success,data})
-      // but may still pass through a global interceptor — check all possible shapes
+
+      // FREE plan monthly share limit reached
+      if (res.status === 403) {
+        const msg = json?.message?.message || json?.message || "You've reached your monthly share limit."
+        setLimitMsg(msg)
+        setState('limit')
+        return
+      }
+
       const data = json?.data?.data || json?.data || json
       const token2 = data?.publicToken
       if (token2) {
@@ -48,6 +58,19 @@ function ShareButton({ momentId }: { momentId: string }) {
       }
     } catch (e) { console.error('Share error:', e); setState('idle') }
   }
+
+  if (state === 'limit') {
+    return (
+      <div style={{ display:'flex', alignItems:'center', gap:'0.9rem', flexWrap:'wrap' }}>
+        <p style={{ fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:'0.9rem', color:'var(--gold)' }}>{limitMsg}</p>
+        <Link href="/subscription" style={{ background:'linear-gradient(135deg,#c8975a,#dba96e)', color:'var(--forest)', padding:'0.6rem 1.4rem', borderRadius:'2rem', textDecoration:'none', fontFamily:"'Playfair Display',serif", fontSize:'0.82rem', fontWeight:700 }}>
+          Upgrade ✦
+        </Link>
+        <button onClick={()=>setState('idle')} style={{ background:'transparent', border:'none', color:'var(--muted)', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', fontSize:'0.82rem', cursor:'none' }}>dismiss</button>
+      </div>
+    )
+  }
+
   return (
     <button onClick={share} disabled={state==='loading'} style={{ background:'transparent', border:'1px solid rgba(200,151,90,0.2)', color:'var(--muted)', padding:'0.8rem 2rem', borderRadius:'2rem', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', transition:'all 0.3s', cursor:'none' }}
       onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.color='var(--gold)'}}
@@ -75,7 +98,6 @@ export default function MomentPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
-        console.log('Raw API response:', JSON.stringify(d, null, 2))
         setRawData(d)
         const raw = d.data || d
         setMoment(normalize(raw))
@@ -92,7 +114,6 @@ export default function MomentPage() {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
-      console.log('Generate response:', JSON.stringify(data, null, 2))
       const raw = data.data || data
       if (raw) { setMoment(normalize(raw)); setTextVisible(false); setTimeout(() => setTextVisible(true), 100) }
     } catch (e) { console.error(e) }
@@ -195,7 +216,7 @@ export default function MomentPage() {
           )}
 
           {/* actions */}
-          <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap', animation:'lineIn 0.8s ease 0.8s both' }}>
+          <div style={{ display:'flex', gap:'1rem', flexWrap:'wrap', alignItems:'center', animation:'lineIn 0.8s ease 0.8s both' }}>
             {moment.poeticText && (
               <button onClick={generateAI} disabled={generating} style={{ background:'transparent', border:'1px solid rgba(200,151,90,0.2)', color:'var(--muted)', padding:'0.8rem 2rem', borderRadius:'2rem', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', transition:'all 0.3s', cursor:'none' }}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.color='var(--gold)'}}
