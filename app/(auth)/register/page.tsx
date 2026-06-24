@@ -382,7 +382,7 @@ export default function RegisterPage() {
 
               <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'1.25rem' }}>
                 {[
-                  { label:'Your name', type:'text', value:name, onChange:setName, placeholder:'Mohammed', delay:'0.2s' },
+                  { label:'Your name', type:'text', value:name, onChange:setName, placeholder:'your name', delay:'0.2s' },
                   { label:'Email', type:'email', value:email, onChange:setEmail, placeholder:'your@email.com', delay:'0.4s' },
                   { label:'Password', type:'password', value:password, onChange:setPassword, placeholder:'••••••••', delay:'0.6s', minLength:8 },
                 ].map(f => (

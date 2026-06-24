@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
@@ -23,6 +23,74 @@ function spawnGlitter(x: number, y: number) {
   }
 }
 
+// ─── Vine Sidebar ─────────────────────────────────────────────────────────────
+function VineSidebar({ user, onLogout }: { user: any; onLogout: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const rafRef = useRef<number>(0)
+  const hoveredItem = useRef(-1)
+  const [hov, setHov] = useState(-1)
+  const navItems = [
+    { label:'Moments', icon:'◎', href:'/dashboard' },
+    { label:'My Book', icon:'❧', href:'/my-story' },
+    { label:'New Moment', icon:'✦', href:'/moments/new' },
+    { label:'Settings', icon:'◈', href:'/settings' },
+  ]
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d')!; let t = 0
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight }
+    resize(); window.addEventListener('resize', resize)
+    const draw = () => {
+      const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H)
+      const sx=28, sg=ctx.createLinearGradient(sx,0,sx,H)
+      sg.addColorStop(0,'rgba(90,158,111,0)');sg.addColorStop(0.1,'rgba(90,158,111,0.35)');sg.addColorStop(0.9,'rgba(90,158,111,0.35)');sg.addColorStop(1,'rgba(90,158,111,0)')
+      ctx.save();ctx.strokeStyle=sg;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(sx,0)
+      for(let y=0;y<=H;y+=40)ctx.lineTo(sx+Math.sin(y*0.05+t*0.3)*3,y)
+      ctx.stroke();ctx.restore()
+      ;[0.15,0.32,0.48,0.65,0.82].forEach((pos,i)=>{
+        const y=H*pos,x=sx+Math.sin(y*0.05+t*0.3)*3,side=i%2===0?1:-1,ll=12+Math.sin(t*0.4+i)*2
+        ctx.save();ctx.translate(x,y);ctx.rotate(side*(0.4+Math.sin(t*0.6+i*1.2)*0.08))
+        ctx.globalAlpha=0.45+0.15*Math.sin(t*0.5+i);ctx.fillStyle='#5a9e6f'
+        ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(side*ll*0.7,-ll*0.4,side*ll,0);ctx.quadraticCurveTo(side*ll*0.7,ll*0.3,0,0);ctx.fill();ctx.restore()
+      })
+      navItems.forEach((_,i)=>{
+        const y=160+i*64,isA=navItems[i].href==='/moments/new',isH=hoveredItem.current===i
+        const bloom=isA?1:isH?(0.6+0.4*Math.sin(t*3)):0.2
+        const fx=sx+Math.sin(y*0.05+t*0.3)*3
+        ctx.save();ctx.globalAlpha=0.3+bloom*0.4;ctx.strokeStyle='#5a9e6f';ctx.lineWidth=1
+        ctx.beginPath();ctx.moveTo(fx,y);ctx.quadraticCurveTo(fx+10,y-8,fx+18,y);ctx.stroke();ctx.restore()
+        if(bloom>0.15){
+          const ps=4+bloom*5,rot=t*(isA?0.15:0.05)+i*0.8
+          for(let p=0;p<5;p++){const ang=(p/5)*Math.PI*2+rot;ctx.save();ctx.globalAlpha=bloom*0.7;ctx.fillStyle=isA?'#c8975a':'#7cb987';ctx.beginPath();ctx.arc(fx+18+Math.cos(ang)*ps,y+Math.sin(ang)*ps,ps*0.55,0,Math.PI*2);ctx.fill();ctx.restore()}
+          ctx.save();ctx.globalAlpha=bloom;ctx.fillStyle=isA?'#ffe8a0':'#c8975a';ctx.beginPath();ctx.arc(fx+18,y,2.5,0,Math.PI*2);ctx.fill();ctx.restore()
+        }
+      })
+      t+=0.016;rafRef.current=requestAnimationFrame(draw)
+    }
+    draw()
+    return()=>{cancelAnimationFrame(rafRef.current);window.removeEventListener('resize',resize)}
+  },[])
+  return (
+    <div style={{width:'220px',flexShrink:0,background:'rgba(4,10,5,0.95)',borderRight:'1px solid rgba(200,151,90,0.08)',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflow:'hidden'}}>
+      <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none'}}/>
+      <div style={{position:'relative',zIndex:2,display:'flex',flexDirection:'column',height:'100%',padding:'2rem 0'}}>
+        <Link href="/" style={{fontFamily:"'Playfair Display',serif",fontSize:'1.8rem',color:'var(--gold)',textDecoration:'none',padding:'0 1.5rem',marginBottom:'2.5rem',display:'block'}}>felt.</Link>
+        <nav style={{flex:1}}>
+          {navItems.map((item,i)=>{const isA=item.href==='/moments/new';return(
+            <Link key={item.label} href={item.href} onMouseEnter={()=>{hoveredItem.current=i;setHov(i)}} onMouseLeave={()=>{hoveredItem.current=-1;setHov(-1)}} style={{display:'flex',alignItems:'center',gap:'0.75rem',padding:'0.85rem 1.5rem 0.85rem 3.2rem',textDecoration:'none',color:isA?'var(--cream)':hov===i?'var(--parchment)':'var(--muted)',background:isA?'rgba(200,151,90,0.06)':'transparent',borderRight:isA?'2px solid var(--gold)':'2px solid transparent',transition:'all 0.3s',fontFamily:"'Cormorant Garamond',serif",fontSize:'1rem',fontStyle:isA?'italic':'normal'}}>
+              <span style={{fontSize:'0.7rem',color:isA?'var(--gold)':'rgba(200,151,90,0.3)'}}>{item.icon}</span>{item.label}
+            </Link>
+          )})}
+        </nav>
+        <div style={{padding:'0 1.5rem',borderTop:'1px solid rgba(200,151,90,0.08)',paddingTop:'1.5rem'}}>
+          <p style={{color:'var(--parchment)',fontStyle:'italic',fontFamily:"'Cormorant Garamond',serif",fontSize:'0.9rem',marginBottom:'0.75rem'}}>{user?.name}</p>
+          <button onClick={onLogout} style={{background:'transparent',border:'none',color:'rgba(107,138,114,0.5)',fontSize:'0.8rem',fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic',cursor:'none',padding:0}} onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'} onMouseLeave={e=>e.currentTarget.style.color='rgba(107,138,114,0.5)'}>sign out</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function NewMomentPage() {
   const [step, setStep] = useState<'form'|'generating'|'done'>('form')
   const [description, setDescription] = useState('')
@@ -32,8 +100,23 @@ export default function NewMomentPage() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
   const [focused, setFocused] = useState('')
+  const [user, setUser] = useState<any>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('felt_token')
+    const ud = localStorage.getItem('felt_user')
+    if (!token) { window.location.href = '/login'; return }
+    if (ud) try { setUser(JSON.parse(ud)) } catch {}
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => {
+        const u = d?.data?.data || d?.data || d
+        if (u && (u.id || u.email)) { setUser(u); localStorage.setItem('felt_user', JSON.stringify(u)) }
+      }).catch(() => {})
+  }, [])
+
+  const logout = () => { localStorage.removeItem('felt_token'); localStorage.removeItem('felt_user'); window.location.href = '/' }
 
   const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -60,7 +143,7 @@ export default function NewMomentPage() {
       form.append('description', description)
       if (location) form.append('location', location)
       if (photo) form.append('frontPhoto', photo)
-      const res = await fetch('http://localhost:3000/api/v1/moments', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form,
       })
       const data = await res.json()
@@ -70,7 +153,7 @@ export default function NewMomentPage() {
       if (!momentId) throw new Error('No moment ID returned')
 
       // Auto-trigger AI generation
-      await fetch(`http://localhost:3000/api/v1/moments/${momentId}/generate`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/${momentId}/generate`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -78,7 +161,7 @@ export default function NewMomentPage() {
       let generated = data.data
       for (let i = 0; i < 15; i++) {
         await new Promise(r => setTimeout(r, 2000))
-        const poll = await fetch(`http://localhost:3000/api/v1/moments/${momentId}`, {
+        const poll = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/${momentId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const pollData = await poll.json()
@@ -102,16 +185,10 @@ export default function NewMomentPage() {
       <Cursor /><ParticleCanvas />
       <style>{`@keyframes riseIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
-      <div style={{ minHeight:'100vh', position:'relative', zIndex:2 }}>
-        <nav style={{ padding:'1.2rem 3rem', display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid rgba(200,151,90,0.08)', background:'rgba(6,13,8,0.92)', backdropFilter:'blur(20px)', position:'sticky', top:0, zIndex:100 }}>
-          <Link href="/" style={{ fontFamily:"'Playfair Display',serif", fontSize:'1.8rem', color:'var(--gold)', textDecoration:'none' }}>felt.</Link>
-          <Link href="/dashboard" style={{ color:'var(--muted)', fontStyle:'italic', fontFamily:"'Cormorant Garamond',serif", textDecoration:'none', fontSize:'0.9rem', transition:'color 0.3s' }}
-            onMouseEnter={e=>e.currentTarget.style.color='var(--gold)'}
-            onMouseLeave={e=>e.currentTarget.style.color='var(--muted)'}
-          >← your story</Link>
-        </nav>
+      <div style={{ display:'flex', minHeight:'100vh', position:'relative', zIndex:2 }}>
+        <VineSidebar user={user} onLogout={logout} />
 
-        <div style={{ maxWidth:'620px', margin:'0 auto', padding:'5rem 2rem' }}>
+        <div style={{ flex:1, maxWidth:'620px', margin:'0 auto', padding:'5rem 2rem', width:'100%' }}>
 
           {step === 'generating' && (
             <div style={{ textAlign:'center', padding:'6rem', animation:'riseIn 0.8s ease both' }}>

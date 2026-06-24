@@ -910,6 +910,12 @@ export default function MyStoryPage() {
     const ud=localStorage.getItem('felt_user')
     if(!token){window.location.href='/login';return}
     if(ud)setUser(JSON.parse(ud))
+    // Refetch fresh user data in case it changed in Settings
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`,{headers:{Authorization:`Bearer ${token}`}})
+      .then(r=>r.json()).then(d=>{
+        const u = d?.data?.data || d?.data || d
+        if (u && (u.id || u.email)) { setUser(u); localStorage.setItem('felt_user', JSON.stringify(u)) }
+      }).catch(()=>{})
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments`,{headers:{Authorization:`Bearer ${token}`}})
       .then(r=>r.json()).then(d=>{
         const raw=(d.data||[]).filter((m:any)=>m.isGenerated&&m.poeticText)

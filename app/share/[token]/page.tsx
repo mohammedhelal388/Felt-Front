@@ -1,26 +1,28 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 const Cursor = dynamic(() => import('@/components/ui/Cursor'), { ssr: false })
 const ParticleCanvas = dynamic(() => import('@/components/ui/ParticleCanvas'), { ssr: false })
 
-export default function SharePage({ params }: { params: { token: string } }) {
+export default function SharePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params)
   const [moment, setMoment] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(`http://localhost:3000/api/v1/moments/public/${params.token}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/public/${token}`)
       .then(r => r.json())
       .then(d => {
-        if (d.data) setMoment(d.data)
+        const m = d?.data?.data || d?.data || d
+        if (m && (m.id || m.poeticText)) setMoment(m)
         else setError('This moment has been removed or the link has expired.')
         setLoading(false)
       })
       .catch(() => { setError('Could not load this moment.'); setLoading(false) })
-  }, [params.token])
+  }, [token])
 
   return (
     <>
@@ -82,8 +84,22 @@ export default function SharePage({ params }: { params: { token: string } }) {
                   "{moment.poeticText}"
                 </p>
               )}
+              {moment.description && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.62rem', letterSpacing: '0.2em', color: 'var(--muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                    What they felt
+                  </p>
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontStyle: 'italic', fontSize: '1.05rem',
+                    color: 'var(--parchment)', lineHeight: 1.75,
+                  }}>
+                    {moment.description}
+                  </p>
+                </div>
+              )}
               <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>
-                {new Date(moment.capturedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {moment.capturedAt && new Date(moment.capturedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>
               <div style={{
                 marginTop: '2rem', paddingTop: '2rem',

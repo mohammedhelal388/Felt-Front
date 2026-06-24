@@ -23,7 +23,7 @@ function VineSidebar({ active, user, onLogout }: { active: string; user: any; on
     { label: 'Moments', icon: '◎', href: '/dashboard' },
     { label: 'My Book', icon: '❧', href: '/my-story' },
     { label: 'New Moment', icon: '✦', href: '/moments/new' },
-    { label: 'Settings', icon: '◈', href: '/dashboard' },
+    { label: 'Settings', icon: '◈', href: '/settings' },
   ]
 
   useEffect(() => {
@@ -462,7 +462,13 @@ export default function Dashboard() {
     const userData = localStorage.getItem('felt_user')
     if (!token) { window.location.href = '/login'; return }
     if (userData) setUser(JSON.parse(userData))
-    fetch('http://localhost:3000/api/v1/moments', { headers: { Authorization: `Bearer ${token}` } })
+    // Refetch fresh user data in case it changed in Settings
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(d => {
+        const u = d?.data?.data || d?.data || d
+        if (u && (u.id || u.email)) { setUser(u); localStorage.setItem('felt_user', JSON.stringify(u)) }
+      }).catch(() => {})
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json()).then(d => {
         const raw = d.data || []
         const list = Array.isArray(raw) ? raw : []

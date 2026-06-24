@@ -22,6 +22,44 @@ function normalize(raw: any) {
   }
 }
 
+function ShareButton({ momentId }: { momentId: string }) {
+  const [state, setState] = useState<'idle'|'loading'|'copied'>('idle')
+  const share = async () => {
+    setState('loading')
+    try {
+      const token = localStorage.getItem('felt_token')
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shares/moments/${momentId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      })
+      const json = await res.json()
+      // This endpoint returns the Prisma object directly (not wrapped in {success,data})
+      // but may still pass through a global interceptor — check all possible shapes
+      const data = json?.data?.data || json?.data || json
+      const token2 = data?.publicToken
+      if (token2) {
+        const url = `${window.location.origin}/share/${token2}`
+        await navigator.clipboard.writeText(url)
+        setState('copied')
+        setTimeout(() => setState('idle'), 2500)
+      } else {
+        console.error('Share failed — no token in response:', json)
+        setState('idle')
+      }
+    } catch (e) { console.error('Share error:', e); setState('idle') }
+  }
+  return (
+    <button onClick={share} disabled={state==='loading'} style={{ background:'transparent', border:'1px solid rgba(200,151,90,0.2)', color:'var(--muted)', padding:'0.8rem 2rem', borderRadius:'2rem', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', transition:'all 0.3s', cursor:'none' }}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.color='var(--gold)'}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(200,151,90,0.2)';e.currentTarget.style.color='var(--muted)'}}
+    >
+      {state==='idle' && '↗ share'}
+      {state==='loading' && 'creating link...'}
+      {state==='copied' && '✓ link copied'}
+    </button>
+  )
+}
+
 export default function MomentPage() {
   const params = useParams()
   const id = params?.id
@@ -34,7 +72,7 @@ export default function MomentPage() {
   useEffect(() => {
     const token = localStorage.getItem('felt_token')
     if (!token) { window.location.href = '/login'; return }
-    fetch(`http://localhost:3000/api/v1/moments/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
         console.log('Raw API response:', JSON.stringify(d, null, 2))
@@ -50,7 +88,7 @@ export default function MomentPage() {
     const token = localStorage.getItem('felt_token')
     setGenerating(true)
     try {
-      const res = await fetch(`http://localhost:3000/api/v1/moments/${id}/generate`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/moments/${id}/generate`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
@@ -164,6 +202,7 @@ export default function MomentPage() {
                 onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(200,151,90,0.2)';e.currentTarget.style.color='var(--muted)'}}
               >{generating ? 'Regenerating...' : 'Regenerate'}</button>
             )}
+            <ShareButton momentId={id as string} />
             <Link href="/dashboard" style={{ background:'transparent', border:'1px solid rgba(200,151,90,0.15)', color:'var(--muted)', padding:'0.8rem 2rem', borderRadius:'2rem', textDecoration:'none', fontFamily:"'Cormorant Garamond',serif", fontStyle:'italic', transition:'all 0.3s' }}
               onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--gold)';e.currentTarget.style.color='var(--gold)'}}
               onMouseLeave={e=>{e.currentTarget.style.borderColor='rgba(200,151,90,0.15)';e.currentTarget.style.color='var(--muted)'}}
